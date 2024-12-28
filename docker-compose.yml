@@ -1,0 +1,81 @@
+networks:
+  logs:
+    driver: bridge
+
+services:
+  elasticsearch:
+    container_name: elasticsearch
+    image: elasticsearch:8.16.1
+    networks:
+      - logs
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "cluster.routing.allocation.disk.watermark.high=0.99"
+      - "cluster.routing.allocation.disk.watermark.low=0.98"
+      - "cluster.routing.allocation.disk.watermark.flood_stage=0.99"
+      - "cluster.routing.allocation.disk.watermark.flood_stage.frozen.max_headroom=1g"
+      - "cluster.routing.allocation.disk.watermark.high.max_headroom=1g"
+      - "cluster.routing.allocation.disk.watermark.flood_stage.max_headroom=1g"
+      - ELASTIC_PASSWORD=elastic
+    healthcheck:
+      test: nc -zv localhost 9200
+      interval: 10s
+      timeout: 3s
+      retries: 30
+  wait_for_elasticsearch:
+    container_name: wait_for_elasticsearch
+    image: busybox:latest
+    networks:
+      - logs
+    command: sleep 1
+    depends_on:
+      elasticsearch:
+        condition:
+          service_healthy
+  logstash:
+    container_name: logstash
+    image: logstash:8.16.1
+    networks:
+      - logs
+    volumes:
+      - /tmp/logs:/logs
+      - ./pipelines/:/usr/share/logstash/pipeline/ 
+      - ./logstash.yml:/usr/share/logstash/config/logstash.yml
+    depends_on:
+      elasticsearch:
+        condition:
+          service_healthy
+  kibana:
+    container_name: kibana
+    image: kibana:8.16.1
+    networks:
+      - logs
+    ports:
+      - 5601:5601
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    environment:
+      - SERVICE_TOKEN=${SERVICE_TOKEN}
+    depends_on:
+      elasticsearch:
+        condition:
+          service_healthy
+    healthcheck:
+      test: curl -sL -w %{http_code} localhost:5601 -o /dev/null | grep 200
+      interval: 10s
+      timeout: 3s
+      retries: 30
+  wait_for_kibana:
+    container_name: wait_for_kibana
+    image: busybox:latest
+    networks:
+      - logs
+    command: sleep 1
+    depends_on:
+      kibana:
+        condition:
+          service_healthy

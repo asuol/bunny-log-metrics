@@ -1,0 +1,6 @@
+server.host: 0.0.0.0
+server.shutdownTimeout: 5s
+elasticsearch.hosts: ['https://elasticsearch:9200']
+elasticsearch.ssl.verificationMode: none
+xpack.fleet.outputs: [{id: fleet-default-output, name: default, is_default: true, is_default_monitoring: true, type: elasticsearch, hosts: ['https://elasticsearch:9200']}]
+elasticsearch.serviceAccountToken: ${SERVICE_TOKEN}
