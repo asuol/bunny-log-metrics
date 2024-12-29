@@ -2,6 +2,7 @@
 
 docker compose up -d wait_for_elasticsearch
 
+# Waits for elastic search port to be open
 docker compose logs -f wait_for_elasticsearch
 
 export SERVICE_TOKEN=$(docker exec -it elasticsearch bin/elasticsearch-service-tokens create elastic/kibana kibana-token | grep SERVICE_TOKEN | awk '{print $NF}' | tr -d '\r' | tr -d '\n')
@@ -32,6 +33,10 @@ docker compose down logstash
 
 docker compose up -d wait_for_kibana
 
+# Waits for kibana server to be ready
 docker compose logs -f wait_for_kibana
 
+# Load my previously made bunny dashboards
 curl -X POST localhost:5601/api/saved_objects/_import?createNewCopies=true -H "kbn-xsrf: true" --user elastic:elastic --form file=@bunny.ndjson
+
+echo "Kibana is READY! You can access it at http://localhost:5601"
